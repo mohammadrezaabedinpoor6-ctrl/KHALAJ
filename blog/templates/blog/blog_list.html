@@ -1,0 +1,324 @@
+{% extends '_base.html' %}
+
+{% block page_title %}بلاگ{% endblock page_title %}
+
+{% block styles %}
+<style>
+  /* Full-page animated background (only in this view) */
+  /* Subtle animated swirl background */
+  .page-animated-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(60% 40% at 90% 10%, rgba(13,110,253,.20), transparent 60%),
+                radial-gradient(50% 30% at 10% 90%, rgba(102,16,242,.18), transparent 60%),
+                conic-gradient(from 180deg at 50% 50%, rgba(13,110,253,.05), rgba(102,16,242,.05), rgba(13,110,253,.05));
+    filter: blur(16px) saturate(1.05); transform: scale(1.2); animation: swirl 22s linear infinite; }
+  @keyframes swirl { to { transform: scale(1.2) rotate(360deg); } }
+
+  .page-content { position: relative; z-index: 1; }
+
+  /* Grid */
+  .blog-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+  @media (max-width: 991.98px) { .blog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 575.98px) { .blog-grid { grid-template-columns: 1fr; } }
+
+  /* Card */
+  .blog-card { position: relative; border-radius: 1rem; overflow: hidden; height: 320px; transform: translateZ(0);
+    transition: transform .25s ease, box-shadow .25s ease; box-shadow: 0 8px 24px rgba(0,0,0,.06); border: 1px solid rgba(255,255,255,.25); }
+  .blog-card:hover { transform: translateY(-6px); box-shadow: 0 18px 48px rgba(0,0,0,.10); }
+  .blog-thumb { position: absolute; inset: 0; background-size: cover; background-position: center; filter: saturate(1.08); transition: transform .6s ease, filter .6s ease; }
+  .blog-card:hover .blog-thumb { transform: scale(1.08); filter: saturate(1.15) contrast(1.02); }
+  .blog-overlay { position: absolute; inset: 0; display: flex; align-items: flex-end; padding: 1rem; background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0) 55%); }
+  .glass { width: 100%; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.35); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    border-radius: .75rem; padding: .75rem; color: #fff; transform: translateY(4px); transition: transform .25s ease, background .25s ease, border-color .25s ease; }
+  .blog-card:hover .glass { transform: translateY(-2px); background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.55); }
+  .glass h3 { font-size: 1.05rem; margin: 0 0 .25rem 0; }
+  .glass p { font-size: .85rem; margin: 0 0 .5rem 0; color: rgba(255,255,255,.9); }
+  .glass .meta { font-size: .75rem; opacity: .95; display: flex; gap: .75rem; flex-wrap: wrap; }
+  .glass .meta i { opacity: .9; }
+  .blog-link { text-decoration: none; color: inherit; }
+
+  /* Filters bar */
+  .filters-bar { position: sticky; top: .75rem; z-index: 2; display: flex; gap: .75rem; flex-wrap: wrap; align-items: center;
+    justify-content: center; margin-inline: auto;
+    background: rgba(255,255,255,.6); border: 1px solid rgba(0,0,0,.06); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 6px 24px rgba(0,0,0,.06); border-radius: .75rem; padding: .75rem; }
+  .fx-input, .fx-dropdown { position: relative; }
+  .fx-input input { 
+    background: rgba(255,255,255,.85); border: 1px solid rgba(0,0,0,.12); border-radius: .65rem; padding: .6rem 2.4rem .6rem .9rem; min-width: 260px;
+    transition: border-color .25s ease, box-shadow .25s ease, transform .1s ease; 
+  }
+  .fx-input input:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(13,110,253,.08); }
+  .fx-input input:focus { border-color: rgba(13,110,253,.5); box-shadow: 0 0 0 .2rem rgba(13,110,253,.15); }
+  .fx-input input::placeholder { color: #98a2ad; }
+  .fx-icon { position: absolute; inset-inline-end: .65rem; inset-block-start: 50%; transform: translateY(-50%); color: #6c757d; pointer-events: none; }
+
+  /* Custom dropdown (animated) */
+  .fx-dd-btn { background: rgba(255,255,255,.85); border: 1px solid rgba(0,0,0,.12); border-radius: .65rem; padding: .6rem .9rem; min-width: 220px;
+    display:flex; align-items:center; gap:.5rem; transition: border-color .25s ease, box-shadow .25s ease, transform .1s ease; }
+  .fx-dd-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(13,110,253,.08); }
+  .fx-dd-label { flex:1 1 auto; text-align:right; }
+  .fx-dd-icons { display:flex; align-items:center; gap:.4rem; color:#6c757d; }
+  .fx-dd-icons .chev { transition: transform .25s ease; }
+  .fx-dropdown.open .chev { transform: rotate(180deg); }
+
+  .fx-menu { position:absolute; inset-inline-start:0; inset-block-start: calc(100% + 6px); min-width:100%; background: rgba(255,255,255,.85);
+    border:1px solid rgba(0,0,0,.08); border-radius:.65rem; box-shadow: 0 14px 34px rgba(0,0,0,.12); overflow:hidden; 
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    transform-origin: top; transform: perspective(500px) translateZ(0) scaleY(.96); opacity:0; pointer-events:none; transition: transform .18s ease, opacity .18s ease; }
+  .fx-dropdown.open .fx-menu { transform: perspective(500px) translateZ(0) scaleY(1); opacity:1; pointer-events:auto; }
+  .fx-menu button { display:flex; width:100%; justify-content:space-between; align-items:center; gap:.5rem; padding:.6rem .75rem; background:transparent; border:0; cursor:pointer; }
+  .fx-menu button:hover { background: rgba(13,110,253,.08); }
+  .fx-menu .active { background: rgba(13,110,253,.12); font-weight:600; }
+  .fx-menu .item-label { flex:1 1 auto; text-align:right; }
+
+  .fx-btn { padding-inline: 1.1rem; border-radius: .5rem; transition: transform .1s ease, box-shadow .2s ease; }
+  .fx-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(13,110,253,.2); }
+
+  /* Modern pagination */
+  .pagination-modern { display:flex; justify-content:center; gap:.4rem; flex-wrap:wrap; }
+  .pagination-modern .page { 
+    display:inline-flex; align-items:center; justify-content:center; min-width:38px; height:38px; padding:0 .6rem; border-radius:999px;
+    background: rgba(255,255,255,.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border:1px solid rgba(0,0,0,.08); color:#212529; text-decoration:none; position:relative; overflow:hidden;
+    transition: color .2s ease, transform .15s ease, border-color .2s ease, box-shadow .2s ease; 
+  }
+  .pagination-modern .page::before { content:""; position:absolute; inset:0; background: linear-gradient(90deg,#0d6efd,#6610f2); transform: translateX(-100%);
+    transition: transform .28s ease; opacity:.12; }
+  .pagination-modern .page:hover::before { transform: translateX(0); }
+  .pagination-modern .page:hover { color:#0d6efd; transform: translateY(-1px); box-shadow:0 10px 24px rgba(13,110,253,.18); }
+  .pagination-modern .active { background:#0d6efd; color:#fff; border-color: transparent; }
+  .pagination-modern .disabled { pointer-events:none; opacity:.5; }
+  /* No results state */
+  .no-results { display:flex; align-items:center; justify-content:center; min-height:160px; background: rgba(255,255,255,.7); border:1px dashed rgba(0,0,0,.15); border-radius:.75rem; color:#6c757d; font-weight:600; }
+</style>
+{% endblock styles %}
+
+{% block content %}
+
+<div class="page-animated-bg"></div>
+
+<div class="page-content">
+
+  <div class="container my-4">
+  <form method="get" class="filters-bar mb-4" onsubmit="return false;">
+    <div class="fx-input">
+      <i class="fx-icon fa-solid fa-magnifying-glass"></i>
+      <input type="text" name="q" class="form-control" placeholder="جستجوی بلاگ..." value="{{ search_query }}">
+    </div>
+
+    <div class="fx-dropdown" id="sortDropdown" data-initial="{{ sort_by|default:'' }}">
+      <button type="button" class="fx-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+        <span class="fx-dd-label">
+          {% if sort_by == 'newest' %}جدیدترین{% elif sort_by == 'oldest' %}قدیمی‌ترین{% elif sort_by == 'most_commented' %}پربحث‌ترین{% elif sort_by == 'most_liked' %}محبوب‌ترین{% elif sort_by == 'most_viewed' %}پربازدیدترین{% else %}مرتب‌سازی{% endif %}
+        </span>
+        <span class="fx-dd-icons"><i class="fa-solid fa-filter"></i><i class="fa-solid fa-chevron-down chev"></i></span>
+      </button>
+      <input type="hidden" name="sort" id="sortValue" value="{{ sort_by }}">
+      <div class="fx-menu" role="listbox">
+        <button type="button" data-value="" class="{% if not sort_by %}active{% endif %}"><span class="item-label">بدون مرتب‌سازی</span><i class="fa-solid fa-minus"></i></button>
+        <button type="button" data-value="newest" class="{% if sort_by == 'newest' %}active{% endif %}"><span class="item-label">جدیدترین</span><i class="fa-solid fa-arrow-up-short-wide"></i></button>
+        <button type="button" data-value="oldest" class="{% if sort_by == 'oldest' %}active{% endif %}"><span class="item-label">قدیمی‌ترین</span><i class="fa-solid fa-arrow-down-wide-short"></i></button>
+        <button type="button" data-value="most_commented" class="{% if sort_by == 'most_commented' %}active{% endif %}"><span class="item-label">پربحث‌ترین</span><i class="fa-solid fa-comments"></i></button>
+        <button type="button" data-value="most_liked" class="{% if sort_by == 'most_liked' %}active{% endif %}"><span class="item-label">محبوب‌ترین</span><i class="fa-solid fa-heart"></i></button>
+        <button type="button" data-value="most_viewed" class="{% if sort_by == 'most_viewed' %}active{% endif %}"><span class="item-label">پربازدیدترین</span><i class="fa-solid fa-eye"></i></button>
+      </div>
+    </div>
+  </form>
+  </div>
+
+  <div class="container mb-5">
+    <div class="blog-grid">
+      {% for blog in page_obj %}
+        <a class="blog-link" href="{{ blog.get_absolute_url }}">
+          <article class="blog-card">
+            <div class="blog-thumb" style="background-image:url('{% if blog.cover %}{{ blog.cover.url }}{% endif %}');"></div>
+            <div class="blog-overlay">
+              <div class="glass">
+                <h3 class="fw-bold">{{ blog.title|default:"بدون عنوان" }}</h3>
+                <p>{{ blog.description|default:""|truncatechars:60 }}...</p>
+                <div class="meta">
+                  <span title="نویسنده"><i class="fa-regular fa-user"></i> {{ blog.author.username }}</span>
+                  <span title="تاریخ"><i class="fa-regular fa-clock"></i> {{ blog.created_at_jalali }}
+                  <span title="بازدید"><i class="fa-regular fa-eye"></i> {{ blog.views }}</span>
+                  <span title="پسند"><i class="fa-regular fa-heart"></i> {{ blog.total_likes }}</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        </a>
+      {% empty %}
+        {% for _ in "123" %}
+          <a class="blog-link" href="{% url 'blog_create' %}">
+            <article class="blog-card">
+              <div class="blog-thumb" style="background-image:linear-gradient(135deg,#dfe9ff,#f5e9ff);"></div>
+              <div class="blog-overlay">
+                <div class="glass">
+                  <h3 class="fw-bold">هنوز پستی ثبت نشده</h3>
+                  <p>اولین نفری باشید که می‌نویسد.</p>
+                </div>
+              </div>
+            </article>
+          </a>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <nav aria-label="Page navigation" class="my-4">
+    <div class="pagination-modern">
+      {% if page_obj.has_previous %}
+        <a class="page" href="{% url 'blog_list' %}?page={{ page_obj.previous_page_number }}" aria-label="قبلی"><i class="fa-solid fa-angle-right"></i></a>
+      {% else %}
+        <span class="page disabled" aria-disabled="true"><i class="fa-solid fa-angle-right"></i></span>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+        {% if num == page_obj.number %}
+          <span class="page active">{{ num }}</span>
+        {% else %}
+          <a class="page" href="{% url 'blog_list' %}?page={{ num }}">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a class="page" href="{% url 'blog_list' %}?page={{ page_obj.next_page_number }}" aria-label="بعدی"><i class="fa-solid fa-angle-left"></i></a>
+      {% else %}
+        <span class="page disabled" aria-disabled="true"><i class="fa-solid fa-angle-left"></i></span>
+      {% endif %}
+    </div>
+  </nav>
+
+  <script>
+    (function(){
+      const dd = document.getElementById('sortDropdown');
+      if(!dd) return;
+      const btn = dd.querySelector('.fx-dd-btn');
+      const menu = dd.querySelector('.fx-menu');
+      const hidden = document.getElementById('sortValue');
+      const label = dd.querySelector('.fx-dd-label');
+      const map = {
+        '': 'بدون مرتب‌سازی',
+        'newest': 'جدیدترین',
+        'oldest': 'قدیمی‌ترین',
+        'most_commented': 'پربحث‌ترین',
+        'most_liked': 'محبوب‌ترین',
+        'most_viewed': 'پربازدیدترین'
+      };
+
+      const open = () => { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); };
+      const close = () => { dd.classList.remove('open'); btn.setAttribute('aria-expanded','false'); };
+      btn.addEventListener('click', (e)=>{ e.preventDefault(); dd.classList.toggle('open'); btn.setAttribute('aria-expanded', dd.classList.contains('open')); });
+      document.addEventListener('click', (e)=>{ if(!dd.contains(e.target)) close(); });
+      menu.querySelectorAll('button').forEach(b=>{
+        b.addEventListener('click', ()=>{
+          menu.querySelectorAll('.active').forEach(x=>x.classList.remove('active'));
+          b.classList.add('active');
+          const val = b.getAttribute('data-value');
+          hidden.value = val;
+          label.textContent = map[val];
+          close();
+        });
+      });
+    })();
+  </script>
+  <script>
+    (function(){
+      const form = document.querySelector('form.filters-bar');
+      const grid = document.querySelector('.blog-grid');
+      let pagination = document.querySelector('nav[aria-label="Page navigation"]');
+      if(!form || !grid) return;
+
+      form.addEventListener('submit', e => e.preventDefault());
+
+      const search = form.querySelector('input[name="q"]');
+      const hiddenSort = document.getElementById('sortValue');
+
+      const buildUrl = (page=null) => {
+        const params = new URLSearchParams();
+        const q = search ? search.value.trim() : '';
+        const s = hiddenSort ? hiddenSort.value : '';
+        if (q) params.set('q', q);
+        if (s) params.set('sort', s);
+        if (page) params.set('page', page);
+        const base = window.location.pathname;
+        const qs = params.toString();
+        return qs ? `${base}?${qs}` : base;
+      };
+
+      const attachPagination = () => {
+        const pagLinks = document.querySelectorAll('.pagination-modern a.page');
+        pagLinks.forEach(a => {
+          a.addEventListener('click', (e)=>{
+            e.preventDefault();
+            const page = new URL(a.href, window.location.origin).searchParams.get('page');
+            fetchAndRender(page);
+          });
+        });
+      };
+
+      const renderFromHTML = (htmlText) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
+        const newGrid = doc.querySelector('.blog-grid');
+        const newPag = doc.querySelector('nav[aria-label="Page navigation"]');
+        if (newGrid) {
+          grid.innerHTML = newGrid.innerHTML;
+          // If template rendered placeholder cards, force a clean empty state
+          if (htmlText.includes('هنوز پستی ثبت نشده') || !grid.querySelector('.blog-card')) {
+            grid.innerHTML = '<div class="no-results">چیزی پیدا نشد</div>';
+          }
+        }
+        if (newPag && pagination) {
+          pagination.outerHTML = newPag.outerHTML;
+          pagination = document.querySelector('nav[aria-label="Page navigation"]');
+          attachPagination();
+        }
+        // Ensure correct empty state based strictly on parsed content
+        const parsedHasCards = newGrid && newGrid.querySelector('.blog-card');
+        if (parsedHasCards && grid.querySelector('.no-results')) {
+          grid.innerHTML = newGrid.innerHTML;
+        } else if (!parsedHasCards && !grid.querySelector('.no-results')) {
+          grid.innerHTML = '<div class="no-results">چیزی پیدا نشد</div>';
+        }
+      };
+
+      const fetchAndRender = (page=null) => {
+        const viewUrl = buildUrl(page);
+        const fetchUrl = viewUrl + (viewUrl.includes('?') ? '&' : '?') + '_ts=' + Date.now();
+        history.replaceState({}, '', viewUrl);
+        fetch(fetchUrl, { cache: 'no-store', credentials: 'same-origin' })
+          .then(r => r.text())
+          .then(renderFromHTML)
+          .catch(console.error);
+      };
+
+      // Debounced live search
+      if (search) {
+        let t; 
+        search.addEventListener('input', ()=>{ clearTimeout(t); t = setTimeout(()=>fetchAndRender(null), 400); });
+        search.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); fetchAndRender(null); } });
+      }
+
+      // Hook custom dropdown selections
+      const menu = document.querySelector('#sortDropdown .fx-menu');
+      if (menu) {
+        menu.querySelectorAll('button').forEach(b => {
+          b.addEventListener('click', ()=> fetchAndRender(null));
+        });
+      }
+
+      attachPagination();
+      // Auto-refresh when user returns to the tab or BFCache restores
+      const refreshOnReturn = () => fetchAndRender(null);
+      window.addEventListener('focus', refreshOnReturn);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshOnReturn(); });
+      window.addEventListener('pageshow', (e) => { if (e.persisted) refreshOnReturn(); });
+      if (!grid.querySelector('.blog-card')) {
+        grid.innerHTML = '<div class="no-results">چیزی پیدا نشد</div>';
+      }
+    })();
+  </script>
+
+</div>
+
+{% endblock content %}
+

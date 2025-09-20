@@ -1,0 +1,113 @@
+﻿{% extends '_base.html' %}
+
+{% load crispy_forms_tags %}
+
+{% block page_title %}تأیید ایمیل{% endblock page_title %}
+
+{% block styles %}
+<style>
+  html, body { overflow-x: hidden; }
+
+  .auth-shell { position: relative; }
+
+  .auth-bg {
+    position: fixed;
+    inset: -120px;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(60% 40% at 90% 10%, rgba(13,110,253,.25), transparent 60%),
+                radial-gradient(50% 30% at 10% 90%, rgba(102,16,242,.22), transparent 60%),
+                conic-gradient(from 180deg at 50% 50%, rgba(13,110,253,.08), rgba(102,16,242,.08), rgba(13,110,253,.08));
+    filter: blur(18px) saturate(1.1);
+    animation: swirl 22s linear infinite;
+  }
+  @keyframes swirl { to { transform: rotate(360deg); } }
+
+  .auth-full {
+    position: relative;
+    width: 100vw;
+    margin-inline: calc(-50vw + 50%);
+    min-height: calc(100vh - 160px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3.5rem clamp(1rem, 6vw, 4rem);
+    overflow: hidden;
+  }
+
+
+  .gradient-text {
+    background: linear-gradient(90deg, #0d6efd, #6610f2);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .auth-card {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 520px);
+    border-radius: 1.25rem;
+    padding: 2.5rem 2.25rem;
+    background: rgba(255,255,255,.16);
+    border: 1px solid rgba(255,255,255,.35);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 24px 60px rgba(13,110,253,.18);
+    color: #212529;
+    text-align: right;
+  }
+  .auth-header { text-align: center; }
+  .auth-header h1 { font-weight: 800; font-size: 1.75rem; margin-bottom: .75rem; }
+  .auth-description { color: rgba(33,37,41,.78); font-size: .95rem; margin-bottom: 1.75rem; text-align: right; }
+  .auth-card form { text-align: right; }
+  .auth-card label { width: 100%; text-align: right; font-weight: 600; }
+  .auth-card .form-control { text-align: right; }
+  .auth-card button[type="submit"] { padding: .75rem 1.5rem; font-weight: 600; border-radius: .9rem; }
+  .alert { text-align: right; }
+  .auth-meta { margin-top: 1.75rem; font-size: .9rem; text-align: center; }
+  .auth-meta a { font-weight: 600; text-decoration: none; }
+  .auth-meta a:hover { text-decoration: underline; }
+  @media (max-width: 767.98px) {
+    .auth-full { padding: 2.5rem 1.25rem; }
+    .auth-card { padding: 2rem 1.75rem; border-radius: 1rem; }
+    .auth-header h1 { font-size: 1.5rem; }
+  }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="page-animated-bg"></div>
+
+<div class="page-content">
+  <div class="auth-full">
+  <div class="auth-bg"></div>
+  <div class="auth-card">
+    <div class="auth-header mb-3">
+      <span class="badge rounded-pill bg-primary bg-opacity-75 px-3 py-2">فعال‌سازی حساب</span>
+      <h1 class="gradient-text">ایمیل خود را تأیید کنید</h1>
+    </div>
+    <p class="lead auth-description">کدی که برای ایمیل شما ارسال شده است را وارد کنید تا حساب کاربری‌تان فعال شود و بتوانید به همه امکانات دسترسی داشته باشید.</p>
+    {% if messages %}
+      <div class="alert alert-warning" role="alert">
+        {% for message in messages %}<div>{{ message }}</div>{% endfor %}
+      </div>
+    {% endif %}
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="mb-3">
+        <label for="verification_code" class="form-label">کد تأیید ایمیل</label>
+        <input type="text" name="verification_code" id="verification_code" class="form-control" required>
+      </div>
+      <div class="d-grid mt-4">
+        <button type="submit" class="btn btn-primary">تأیید و ورود</button>
+      </div>
+    </form>
+    <div class="auth-meta">
+      <a href="{% url 'password_reset_code' %}">نیاز به ارسال مجدد کد دارید؟</a>
+    </div>
+  </div>
+</div>
+</div>
+
+{% endblock content %}

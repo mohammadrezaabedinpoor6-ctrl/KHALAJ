@@ -1,0 +1,183 @@
+﻿{% extends '_base.html' %}
+
+{% load crispy_forms_tags %}
+
+{% block page_title %}ورود{% endblock page_title %}
+
+{% block styles %}
+<style>
+  html, body { overflow-x: hidden; }
+
+  .auth-shell { position: relative; }
+
+  .auth-bg {
+    position: fixed;
+    inset: -120px;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(60% 40% at 90% 10%, rgba(13,110,253,.25), transparent 60%),
+                radial-gradient(50% 30% at 10% 90%, rgba(102,16,242,.22), transparent 60%),
+                conic-gradient(from 180deg at 50% 50%, rgba(13,110,253,.08), rgba(102,16,242,.08), rgba(13,110,253,.08));
+    filter: blur(18px) saturate(1.1);
+    animation: swirl 22s linear infinite;
+  }
+  @keyframes swirl { to { transform: rotate(360deg); } }
+
+  .auth-full {
+    position: relative;
+    z-index: 1;
+    min-height: calc(100vh - 160px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3.5rem clamp(1rem, 6vw, 4rem);
+  }
+
+  .gradient-text {
+    background: linear-gradient(90deg, #0d6efd, #6610f2);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .auth-card {
+    position: relative;
+    width: min(100%, 460px);
+    border-radius: 1.25rem;
+    padding: 2.5rem 2.25rem;
+    background: rgba(255,255,255,.16);
+    border: 1px solid rgba(255,255,255,.35);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 24px 60px rgba(13,110,253,.18);
+    color: #212529;
+    text-align: right;
+  html, body { overflow-x: hidden; }
+
+  .auth-shell { position: relative; }
+
+  .auth-bg {
+    position: fixed;
+    inset: -120px;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(60% 40% at 90% 10%, rgba(13,110,253,.25), transparent 60%),
+                radial-gradient(50% 30% at 10% 90%, rgba(102,16,242,.22), transparent 60%),
+                conic-gradient(from 180deg at 50% 50%, rgba(13,110,253,.08), rgba(102,16,242,.08), rgba(13,110,253,.08));
+    filter: blur(18px) saturate(1.1);
+    animation: swirl 22s linear infinite;
+  }
+  @keyframes swirl { to { transform: rotate(360deg); } }
+
+  .auth-full {
+    position: relative;
+    z-index: 1;
+    min-height: calc(100vh - 160px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3.5rem clamp(1rem, 6vw, 4rem);
+  }  html, body { overflow-x: hidden; }
+
+  .auth-shell { position: relative; }
+
+  .auth-bg {
+    position: fixed;
+    inset: -120px;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(60% 40% at 90% 10%, rgba(13,110,253,.25), transparent 60%),
+                radial-gradient(50% 30% at 10% 90%, rgba(102,16,242,.22), transparent 60%),
+                conic-gradient(from 180deg at 50% 50%, rgba(13,110,253,.08), rgba(102,16,242,.08), rgba(13,110,253,.08));
+    filter: blur(18px) saturate(1.1);
+    animation: swirl 22s linear infinite;
+  }
+  @keyframes swirl { to { transform: rotate(360deg); } }
+
+  .auth-full {
+    position: relative;
+    z-index: 1;
+    min-height: calc(100vh - 160px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3.5rem clamp(1rem, 6vw, 4rem);
+  }  html, body { overflow-x: hidden; }
+
+  .auth-shell { position: relative; }
+
+  .auth-bg {
+    position: fixed;
+    inset: -120px;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(60% 40% at 90% 10%, rgba(13,110,253,.25), transparent 60%),
+                radial-gradient(50% 30% at 10% 90%, rgba(102,16,242,.22), transparent 60%),
+                conic-gradient(from 180deg at 50% 50%, rgba(13,110,253,.08), rgba(102,16,242,.08), rgba(13,110,253,.08));
+    filter: blur(18px) saturate(1.1);
+    animation: swirl 22s linear infinite;
+  }
+  @keyframes swirl { to { transform: rotate(360deg); } }
+
+  .auth-full {
+    position: relative;
+    z-index: 1;
+    min-height: calc(100vh - 160px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3.5rem clamp(1rem, 6vw, 4rem);
+  }  }
+  .auth-header { text-align: center; }
+  .auth-header h1 { font-weight: 800; font-size: 1.75rem; margin-bottom: .75rem; }
+  .auth-description { color: rgba(33,37,41,.78); font-size: .95rem; margin-bottom: 1.75rem; }
+  .auth-card form { text-align: right; }
+  .auth-card .form-label { width: 100%; text-align: right; }
+  .auth-card .form-text, .auth-card .invalid-feedback { text-align: right; }
+  .auth-card button[type="submit"] { padding: .75rem 1.5rem; font-weight: 600; border-radius: .9rem; }
+  .auth-meta {
+    margin-top: 1.75rem;
+    font-size: .9rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: .75rem;
+  }
+  .auth-meta a { font-weight: 600; text-decoration: none; }
+  .auth-meta a:hover { text-decoration: underline; }
+
+  @media (max-width: 767.98px) {
+    .auth-full { padding: 2.5rem 1.25rem; }
+    .auth-card { padding: 2rem 1.75rem; border-radius: 1rem; }
+    .auth-header h1 { font-size: 1.5rem; }
+  }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="auth-shell">
+  <div class="auth-bg"></div>
+  <div class="auth-full">
+    <div class="auth-card">
+      <div class="auth-header mb-3">
+        <span class="badge rounded-pill bg-primary bg-opacity-75 px-3 py-2">خوش برگشتی</span>
+        <h1 class="gradient-text">ورود به حساب کاربری</h1>
+      </div>
+      <p class="lead auth-description">برای ادامه مسیر الهام‌بخش خود وارد حساب شوید و به تازه‌ترین مقالات، گفتگوها و ابزارهای حرفه‌ای دسترسی پیدا کنید.</p>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form|crispy }}
+        <div class="d-grid mt-4">
+          <button type="submit" class="btn btn-primary">ورود</button>
+        </div>
+      </form>
+      <div class="auth-meta">
+        <a href="{% url 'password_reset' %}">بازیابی رمز عبور</a>
+        <span class="text-muted">|</span>
+        <a href="{% url 'signup' %}">ساخت حساب جدید</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+

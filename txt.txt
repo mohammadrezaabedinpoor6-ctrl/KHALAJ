@@ -1,0 +1,447 @@
+<div class="container mt-5" style="background-color: #E8F9FF; padding: 9%; border-radius: 20px;" dir="rtl">
+     <div class="">
+         <div class="">
+             <div class="d-flex justify-content-center">
+                 <div class="row w-sm-80 w-200">
+                     <div class="col-xs-12 col-md-3 d-flex justify-content-center"  style="width: 50%;">
+                         <div >
+                             {% if blog.cover %}
+                             <img style="width: 100%; border-radius: 25px; " class="shadow" src="{{ blog.cover.url }}"
+                                  class="img-fluid " alt="...">
+                             {% endif %}
+                         </div>
+                     </div>
+ 
+                     <div class="col-xs-12 col-md-9 text-center text-md-end mt-md-1 mt-4 align-items-center">
+                         <br>
+                         <br>
+                         <h1 style="padding-right: 50px; color: #000000;">{{ blog.title }}</h1>
+                     </div>
+                     
+                     <div class="col-xs-12 col-md-3 d-flex flex-column align-items-center gap-2 mt-3">
+                         {% if user == blog.author %}
+                         <a style="width: 85%;" class="btn btn-outline-info" href="{% url 'blog_update' blog.pk %}">
+                             ویرایش پست
+                         </a>
+                         <a style="width: 85%;" class="btn btn-outline-danger" href="{% url 'blog_delete' blog.pk %}">
+                             حذف پست
+                         </a>
+                         {% endif %}
+                     </div>
+                 </div>
+             </div>
+             <br>
+             <br>
+             <br>
+             
+             <div style="word-wrap: break-word; white-space: normal;"  class="d-flx justify-content-center">
+                 <h1 style="color: #000000;">توضیحات</h1>
+                 <br>
+                 <hr>
+                 <div style="color: #000000;"  class="my-3 p-5 w-sm-75 w-100">
+                     <h2 style=" font-weight: bold; font-size: 20px; ">{{ blog.description|linebreaks }}</h2>
+                     <br>
+                     <hr>
+                     <br>
+                     <a href="#" class="like-btn" data-blog-id="{{ blog.id }}" id="like-btn-{{ blog.id }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="heart-icon {% if is_liked %}liked{% endif %}" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+
+                      </a>
+                    
+                      <span style="text-decoration: none; color: black;" id="like-count-{{ blog.id }}">{{ blog.total_likes }}</span>
+
+                      <p style="font-size: 20px;" >بازدید:{{ blog.views }}</p>
+
+                     <p>تاریخ ایجاد: {{ blog.created_at_jalali }}</p>
+
+                 </div>
+             </div>
+             <hr>
+             <br>
+             <div id="comments" class="d-flex justify-content-center">
+                <div class="card shadow my-3 p-5 w-sm-75 w-100" style="border-radius: 25px;">
+                    <h2 class="mb-5">نظرات:</h2>
+                    <hr>
+                    <div class="border-bottom mb-3">
+                        {% for comment in comments %}
+                            {% if comment.is_active %}
+                                <div id="comment-{{ comment.id }}">
+                                    <h5 class="mb-3" style="text-align: left; color: #4d9bb3;">
+                                        {{ comment.user }} |
+                                    </h5>
+                                    <p class="comment-text">
+                                        {{ comment.text|linebreaks }}
+                                    </p>
+                                    <small>تاریخ: {{ comment.datetime_created_jalali }}</small>
+                                    <div class="d-flex align-items-center gap-3 mt-2">
+                                        <!-- دکمه لایک -->
+                                        <a href="#" class="like-comment-btn" data-comment-id="{{ comment.id }}" id="like-comment-btn-{{ comment.id }}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="heart-icon1 {% if request.user in comment.likes.all %}liked{% endif %}" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                            </svg>
+                                            <span style="padding-right: 10px;" id="comment-like-count-{{ comment.id }}">{{ comment.total_likes }}</span>
+                                        </a>
+            
+                                    </div>
+            
+            
+                                                            <!-- پاسخ‌ها -->
+                                                            <!-- پاسخ‌ها -->
+                        {% for reply in comment.reply_set.all %}
+                        <hr>
+
+                        <div id="reply-{{ reply.id }}" style="margin-left: 20px; border-left: 2px solid #ccc; padding-left: 10px;">
+                            <h6 style="text-align: left; color: #4d9bb3;">{{ reply.user }} |</h6>
+                            <p>{{ reply.text }}</p>
+                            <div class="d-flex align-items-center gap-3 mt-2">
+
+                                {% if reply.user == request.user %}
+                                
+                                <button class="btn btn-primary btn-sm action-btn" id="edit-reply-btn-{{ reply.id }}" onclick="openEditReplyPopup({{ reply.id }})">ویرایش</button>
+                                <button class="btn btn-danger btn-sm action-btn" id="delete-reply-btn-{{ reply.id }}" onclick="openDeleteReplyPopup({{ reply.id }})">حذف</button>
+                                {% endif %}
+                            </div>
+
+                            <div class="popup" id="edit-reply-popup-{{ reply.id }}">
+                                <div class="popup-content">
+                                    <form method="post" action="{% url 'reply_edit' reply.id %}">
+                                        {% csrf_token %}
+                                        <textarea name="text" class="form-control mb-3">{{ reply.text }}</textarea>
+                                        <div class="d-flex justify-content-center gap-3">
+                                            <button type="submit" class="btn btn-success">تایید</button>
+                                            <button type="button" class="btn btn-secondary" onclick="closeEditReplyPopup({{ reply.id }})">انصراف</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="popup" id="delete-reply-popup-{{ reply.id }}">
+                                <div class="popup-content">
+                                    <form method="post" action="{% url 'reply_delete' reply.id %}">
+                                        {% csrf_token %}
+                                        <p>آیا از حذف پاسخ "{{ reply.text }}" مطمئن هستید؟</p>
+                                        <div class="d-flex justify-content-center gap-3">
+                                            <button type="submit" class="btn btn-danger">بله، حذف کن</button>
+                                            <button type="button" class="btn btn-secondary" onclick="closeDeleteReplyPopup({{ reply.id }})">انصراف</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <hr>
+
+                        <!-- فرم پاسخ -->
+                        <div class="popup" id="reply-popup-{{ comment.id }}" style="display: none; align-items: center;">
+                            <div class="popup-content">
+                                <form method="post" action="{% url 'reply_create' comment.id %}">
+                                    {% csrf_token %}
+                                    <textarea name="text" class="form-control mb-3" placeholder="پاسخ خود را بنویسید..."></textarea>
+                                    <div class="d-flex justify-content-center gap-3">
+                                        <button type="submit" class="btn btn-success">تایید</button>
+                                        <button type="button" class="btn btn-secondary" onclick="closeReplyPopup({{ comment.id }})">انصراف</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                                    <br>
+                                    {% if comment.user == request.user %}
+                                    <button class="btn btn-primary btn-sm action-btn" id="edit-btn-{{ comment.id }}" onclick="openEditPopup({{ comment.id }})">ویرایش</button>
+                                    <button class="btn btn-danger btn-sm action-btn" id="delete-btn-{{ comment.id }}" onclick="openDeletePopup({{ comment.id }})">حذف</button>
+
+                                    {% endif %}
+                                    <button class="btn btn-secondary btn-sm action-btn" onclick="openReplyPopup({{ comment.id }})">پاسخ</button>
+
+                                    <hr>
+                                    <div class="popup" id="edit-popup-{{ comment.id }}">
+                                        <div class="popup-content">
+                                            <form method="post" action="{% url 'comment_edit' comment.id %}">
+                                                {% csrf_token %}
+                                                <textarea name="text" class="form-control mb-3">{{ comment.text }}</textarea>
+                                                <div class="d-flex justify-content-center gap-3">
+                                                    <button type="submit" class="btn btn-success">تایید</button>
+                                                    <button type="button" class="btn btn-secondary" onclick="closeEditPopup({{ comment.id }})">انصراف</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <div class="popup" id="delete-popup-{{ comment.id }}">
+                                        <div class="popup-content">
+                                            <form method="post" action="{% url 'comment_delete' comment.id %}">
+                                                {% csrf_token %}
+                                                <p>آیا از حذف کامنت "{{ comment.text }}" مطمئن هستید؟</p>
+                                                <div class="d-flex justify-content-center gap-3">
+                                                    <button type="submit" class="btn btn-danger">بله، حذف کن</button>
+                                                    <button type="button" class="btn btn-secondary" onclick="closeDeletePopup({{ comment.id }})">انصراف</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+
+                      
+
+                        <div class="popup" id="reply-popup-{{ comment.id }}" style="display: none; align-items: center;">
+                            <div class="popup-content">
+                                <form method="post" action="{% url 'reply_create' comment.id %}">
+                                    {% csrf_token %}
+                                    <textarea name="text" class="form-control mb-3" placeholder="پاسخ خود را بنویسید..."></textarea>
+                                    <div class="d-flex justify-content-center gap-3">
+                                        <button type="submit" class="btn btn-success">تایید</button>
+                                        <button type="button" class="btn btn-secondary" onclick="closeReplyPopup({{ comment.id }})">انصراف</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            
+            <div class="d-flex justify-content-center ">
+                <div class="card shadow my-3 p-5 w-sm-75 w-100" style="border-radius: 25px;">
+                    <h3>نظر خود را وارد کنید:</h3>
+                    <br>
+                    <form method="POST">
+                        {% csrf_token %}
+                        {% if user.is_authenticated %}
+                            {{ comment_form|crispy }}
+                        {% else %}
+                            <hr>
+                            <br>
+                            <h3>شما قادر به گذاشتن کامنت نیستید</h3>
+                            <br>
+                            <li class="l1" style="list-style: none;"><a style="text-decoration: none; color: rgb(0, 119, 255); font-size: 20px;" href="{% url 'login' %}">ورود</a></li>
+                            <br>
+                            <li class="l2" style="list-style: none;"><a style="text-decoration: none; color: rgb(0, 119, 255); font-size: 20px;" href="{% url 'signup' %}">ثبت نام</a></li>
+                            <br>
+                            <hr>
+                        {% endif %}
+                        <button type="submit" class="btn btn-primary mt-3">ارسال</button>
+                    </form>
+                </div>
+            </div>
+
+<script>
+
+
+document.addEventListener('DOMContentLoaded', function () {
+        const likeReplyButtons = document.querySelectorAll('.like-reply-btn');
+
+        likeReplyButtons.forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const replyId = this.dataset.replyId;
+                const likeCountSpan = document.getElementById(`comment-like-count-${replyId}`);
+                const heartIcon2 = this.querySelector('.heart-icon2');
+
+                fetch(`/khalaj/reply/${replyId}/like/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.liked) {
+                        heartIcon2.classList.add('liked');
+                    } else {
+                        heartIcon2.classList.remove('liked');
+                    }
+                    likeCountSpan.textContent = data.total_likes;
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+    });
+
+function openReplyPopup(commentId) {
+    document.getElementById(`reply-popup-${commentId}`).style.display = 'flex';
+}
+
+function closeReplyPopup(commentId) {
+    document.getElementById(`reply-popup-${commentId}`).style.display = 'none';
+}
+
+function openEditReplyPopup(replyId) {
+    document.getElementById(`edit-reply-popup-${replyId}`).style.display = 'flex';
+}
+
+function closeEditReplyPopup(replyId) {
+    document.getElementById(`edit-reply-popup-${replyId}`).style.display = 'none';
+}
+
+function openDeleteReplyPopup(replyId) {
+    document.getElementById(`delete-reply-popup-${replyId}`).style.display = 'flex';
+}
+
+function closeDeleteReplyPopup(replyId) {
+    document.getElementById(`delete-reply-popup-${replyId}`).style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+        const likeCommentButtons = document.querySelectorAll('.like-comment-btn');
+
+        likeCommentButtons.forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const commentId = this.dataset.commentId;
+                const likeCountSpan = document.getElementById(`comment-like-count-${commentId}`);
+                const heartIcon = this.querySelector('.heart-icon1');
+
+                fetch(`/khalaj/comment/${commentId}/like/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.liked) {
+                        heartIcon.classList.add('liked');
+                    } else {
+                        heartIcon.classList.remove('liked');
+                    }
+                    likeCountSpan.textContent = data.total_likes;
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+    });
+      document.addEventListener('DOMContentLoaded', function () {
+    const likeButtons = document.querySelectorAll('.like-btn');
+    
+    likeButtons.forEach(button => {
+      button.addEventListener('click', function (e) {
+        e.preventDefault();
+        const blogId = this.dataset.blogId;
+        const likeCountSpan = document.getElementById(`like-count-${blogId}`);
+        const heartIcon = this.querySelector('.heart-icon');
+
+        fetch(`/khalaj/${blogId}/like/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}', // اضافه کردن توکن CSRF
+          },
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.liked) {
+            heartIcon.classList.add('liked');
+          } else {
+            heartIcon.classList.remove('liked');
+          }
+          likeCountSpan.textContent = data.total_likes;
+        })
+        .catch(error => console.error('Error:', error));
+      });
+    });
+  });
+
+
+    function openEditPopup(commentId) {
+        document.getElementById(`edit-popup-${commentId}`).style.display = 'flex';
+    }
+
+    function closeEditPopup(commentId) {
+        document.getElementById(`edit-popup-${commentId}`).style.display = 'none';
+    }
+
+    function openDeletePopup(commentId) {
+        document.getElementById(`delete-popup-${commentId}`).style.display = 'flex';
+    }
+
+    function closeDeletePopup(commentId) {
+        document.getElementById(`delete-popup-${commentId}`).style.display = 'none';
+    }
+
+    // Ensure no popups are open when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        const popups = document.querySelectorAll('.popup');
+        popups.forEach(popup => popup.style.display = 'none');
+    });
+    // ذخیره کردن آی‌دی کامنت یا پاسخ در localStorage
+function storeReplyId(replyId) {
+    localStorage.setItem('last_interacted_reply', replyId);
+}
+
+function storeCommentId(commentId) {
+    localStorage.setItem('last_interacted_comment', commentId);
+}
+
+// باز کردن پاپ‌آپ ویرایش پاسخ
+function openEditReplyPopup(replyId) {
+    storeReplyId(replyId); // ذخیره آی‌دی پاسخ
+    document.getElementById(`edit-reply-popup-${replyId}`).style.display = 'flex';
+}
+
+// بستن پاپ‌آپ ویرایش پاسخ
+function closeEditReplyPopup(replyId) {
+    document.getElementById(`edit-reply-popup-${replyId}`).style.display = 'none';
+}
+
+// باز کردن پاپ‌آپ حذف پاسخ
+function openDeleteReplyPopup(replyId) {
+    storeReplyId(replyId); // ذخیره آی‌دی پاسخ
+    document.getElementById(`delete-reply-popup-${replyId}`).style.display = 'flex';
+}
+
+// بستن پاپ‌آپ حذف پاسخ
+function closeDeleteReplyPopup(replyId) {
+    document.getElementById(`delete-reply-popup-${replyId}`).style.display = 'none';
+}
+
+// باز کردن پاپ‌آپ پاسخ به کامنت
+function openReplyPopup(commentId) {
+    storeCommentId(commentId); // ذخیره آی‌دی کامنت
+    document.getElementById(`reply-popup-${commentId}`).style.display = 'flex';
+}
+
+// بستن پاپ‌آپ پاسخ به کامنت
+function closeReplyPopup(commentId) {
+    document.getElementById(`reply-popup-${commentId}`).style.display = 'none';
+}
+
+// اسکرول به کامنت یا پاسخ مورد نظر هنگام بارگذاری صفحه
+document.addEventListener('DOMContentLoaded', function () {
+    const lastInteractedReply = localStorage.getItem('last_interacted_reply');
+    const lastInteractedComment = localStorage.getItem('last_interacted_comment');
+
+    // اگر آی‌دی پاسخ ذخیره شده باشد
+    if (lastInteractedReply) {
+        const replyElement = document.getElementById(`reply-${lastInteractedReply}`);
+        if (replyElement) {
+            replyElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    } else if (lastInteractedComment) {
+        // اگر آی‌دی کامنت ذخیره شده باشد
+        const commentElement = document.getElementById(`comment-${lastInteractedComment}`);
+        if (commentElement) {
+            commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+});
+
+// در صورت حذف پاسخ، حذف آی‌دی از localStorage
+document.addEventListener('DOMContentLoaded', function() {
+    const lastInteractedReply = localStorage.getItem('last_interacted_reply');
+    if (lastInteractedReply) {
+        const replyElement = document.getElementById(`reply-${lastInteractedReply}`);
+        if (!replyElement) {
+            // اگر پاسخ حذف شده باشد، آی‌دی ذخیره شده را حذف می‌کنیم
+            localStorage.removeItem('last_interacted_reply');
+        }
+    }
+});
+
+</script>
+{% endblock content %}
+
+
+
+ 

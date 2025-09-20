@@ -1,0 +1,1333 @@
+{% extends '_base.html' %}
+
+{% load static %}
+
+{% block page_title %}{{ blog.title }}{% endblock page_title %}
+
+{% block styles %}
+<style>
+  html, body { overflow-x: hidden; }
+  body.modal-open { 
+    overflow: hidden !important; 
+    position: fixed !important;
+    width: 100% !important;
+    top: var(--scroll-y, 0) !important;
+    left: 0 !important;
+  }
+  html.modal-open {
+    overflow: hidden !important;
+  }
+
+  .detail-bg {
+    position: fixed;
+    inset: -140px;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(60% 40% at 90% 10%, rgba(13,110,253,.25), transparent 60%),
+                radial-gradient(50% 30% at 10% 90%, rgba(102,16,242,.22), transparent 60%),
+                conic-gradient(from 180deg at 50% 50%, rgba(13,110,253,.08), rgba(102,16,242,.08), rgba(13,110,253,.08));
+    filter: blur(22px) saturate(1.05);
+    animation: swirl 22s linear infinite;
+  }
+  @keyframes swirl { to { transform: rotate(360deg); } }
+
+  .detail-wrapper {
+    position: relative;
+    z-index: 1;
+    min-height: calc(100vh - 160px);
+    padding: clamp(3rem, 6vw, 4.75rem) clamp(1.25rem, 6vw, 4.25rem);
+    display: grid;
+    gap: clamp(2rem, 4vw, 3.5rem);
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: clamp(1.75rem, 4vw, 3rem);
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .cover-card {
+    position: relative;
+    border-radius: 1.8rem;
+    overflow: hidden;
+    background: linear-gradient(135deg,#dfe9ff,#f5e9ff);
+    min-height: 320px;
+    box-shadow: 0 28px 70px rgba(13,110,253,.18);
+  }
+  .cover-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .cover-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 1.1rem;
+    padding: clamp(1.75rem, 4vw, 2.5rem);
+    background: linear-gradient(to top, rgba(15,23,42,.6), transparent 55%);
+    color: #fff;
+  }
+  .cover-overlay .meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .5rem 1rem;
+    border-radius: 999px;
+    background: rgba(15,23,42,.55);
+    font-size: .9rem;
+    font-weight: 600;
+  }
+  .cover-overlay .meta-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem 1.25rem;
+    font-size: .9rem;
+    color: rgba(255,255,255,.85);
+  }
+
+  .detail-glass {
+    border-radius: 1.8rem;
+    padding: clamp(2rem, 5vw, 3.6rem);
+    background: rgba(255,255,255,.16);
+    border: 1px solid rgba(255,255,255,.3);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 30px 80px rgba(13,110,253,.22);
+    color: #1f2937;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .detail-title {
+    font-weight: 800;
+    font-size: clamp(2.1rem, 2.9vw, 2.9rem);
+    margin: 0 0 1rem 0;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    line-height: 1.3;
+  }
+  .detail-intro {
+    color: rgba(31,41,55,.8);
+    font-size: 1.05rem;
+    line-height: 1.9;
+    margin-bottom: 1.25rem;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+  .detail-meta-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .8rem 1.4rem;
+    color: rgba(31,41,55,.65);
+    font-size: .93rem;
+  }
+  .detail-meta-inline span {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+  }
+
+  .like-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .6rem 1.25rem;
+    border-radius: .95rem;
+    border: none;
+    background: rgba(236,72,153,.12);
+    color: #ec4899;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+  .like-toggle:hover { transform: translateY(-2px); box-shadow: 0 14px 26px rgba(236,72,153,.18); }
+  .like-toggle.is-active {
+    background: linear-gradient(135deg,#ec4899,#ef4444);
+    color: #fff;
+    box-shadow: 0 18px 36px rgba(236,72,153,.28);
+  }
+  .like-toggle .fa-heart { transition: transform .2s ease; }
+  .like-toggle.is-active .fa-heart { transform: scale(1.1); }
+
+  .detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .9rem;
+    margin-top: 1.8rem;
+  }
+  .btn-gradient {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    border-radius: 1rem;
+    border: none;
+    color: #fff;
+    padding: .8rem 1.9rem;
+    font-weight: 700;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    background-size: 200% 100%;
+    transition: background-position .3s ease, transform .2s ease, box-shadow .2s ease;
+  }
+  .btn-gradient-primary { background-image: linear-gradient(135deg,#6366f1,#14b8a6); box-shadow: 0 20px 44px rgba(79,70,229,.32); }
+  .btn-gradient-danger { background-image: linear-gradient(135deg,#f43f5e,#fb923c); box-shadow: 0 20px 44px rgba(249,115,22,.32); }
+  .btn-gradient:hover { transform: translateY(-3px); background-position: 100% 0; box-shadow: 0 26px 52px rgba(15,23,42,.28); }
+  .btn-gradient:focus-visible { outline: 2px solid rgba(255,255,255,.65); outline-offset: 2px; }
+  .btn-gradient:active { transform: translateY(-1px); }
+
+  .content-card {
+    margin-top: 2.25rem;
+    border-radius: 1.4rem;
+    background: rgba(255,255,255,.22);
+    border: 1px solid rgba(255,255,255,.3);
+    backdrop-filter: blur(18px);
+    padding: clamp(1.75rem,4vw,2.75rem);
+    box-shadow: 0 22px 60px rgba(13,110,253,.14);
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .content-card h2 { 
+    font-weight: 800; 
+    margin-bottom: 1.3rem; 
+    font-size: 1.45rem;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+  .detail-body-text { 
+    line-height: 2; 
+    font-size: 1.07rem; 
+    color: #1f2937; 
+    white-space: pre-line;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .comments-section { display: grid; gap: clamp(1.75rem,3vw,2.6rem); }
+  .comments-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .comments-header-title {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    flex: 1 1 360px;
+  }
+  .comments-header-title h3 { margin: 0; font-weight: 800; }
+  .comments-subtitle {
+    margin: 0;
+    color: rgba(31,41,55,.65);
+    font-size: .9rem;
+    max-width: 52ch;
+  }
+  .comment-count-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .6rem 1.4rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg,#6366f1,#0ea5e9);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 20px 44px rgba(99,102,241,.28);
+    font-variant-numeric: tabular-nums;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .comment-count-pill i { font-size: 1rem; }
+  .comment-count-pill:hover { transform: translateY(-2px); box-shadow: 0 24px 52px rgba(99,102,241,.32); }
+  .comment-count-pill.is-updated { animation: commentPulse .6s ease; }
+  @keyframes commentPulse {
+    0%, 100% { transform: scale(1); }
+    40% { transform: scale(1.08); }
+    70% { transform: scale(0.96); }
+  }
+  .comment-card {
+    border-radius: 1.3rem;
+    background: rgba(255,255,255,.25);
+    border: 1px solid rgba(255,255,255,.32);
+    backdrop-filter: blur(18px);
+    padding: 1.75rem;
+    box-shadow: 0 18px 48px rgba(13,110,253,.12);
+  }
+  .comment-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .8rem; }
+  .comment-author { font-weight: 700; color: #0d6efd; font-size: 1.05rem; }
+  .comment-date {
+    color: rgba(31,41,55,.62);
+    font-size: .85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+  }
+  .comment-text { margin-top: 1rem; line-height: 1.9; font-size: 1.02rem; color: #1f2937; }
+
+  .comment-toolbar, .reply-actions {
+    margin-top: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .65rem;
+    align-items: center;
+  }
+  .toolbar-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .6rem 1.25rem;
+    border-radius: .95rem;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    background: rgba(13,110,253,.1);
+    color: #0d6efd;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .toolbar-pill:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(13,110,253,.16); }
+  .pill-like { background: rgba(236,72,153,.12); color: #ec4899; }
+  .pill-reply { background: rgba(99,102,241,.12); color: #6366f1; }
+  .pill-edit { background: rgba(59,130,246,.12); color: #2563eb; }
+  .pill-delete { background: rgba(220,38,38,.12); color: #dc2626; }
+
+  .reply-thread {
+    margin-top: 1.4rem;
+    padding-inline-start: 1.4rem;
+    border-inline-start: 2px dashed rgba(13,110,253,.18);
+    display: grid;
+    gap: 1.1rem;
+  }
+  .reply-card {
+    border-radius: 1.1rem;
+    background: rgba(255,255,255,.26);
+    border: 1px solid rgba(255,255,255,.34);
+    backdrop-filter: blur(16px);
+    padding: 1.2rem 1.35rem;
+    box-shadow: 0 16px 42px rgba(13,110,253,.1);
+  }
+  .reply-head { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; flex-wrap: wrap; }
+  .reply-body { margin-top: .75rem; line-height: 1.85; color: #1f2937; }
+
+  .comment-form-card {
+    border-radius: 1.6rem;
+    background: rgba(255,255,255,.28);
+    border: 1px solid rgba(255,255,255,.34);
+    backdrop-filter: blur(18px);
+    padding: clamp(2rem, 4vw, 3rem);
+    box-shadow: 0 22px 56px rgba(13,110,253,.14);
+  }
+  .comment-form-card textarea,
+  .popup-content textarea {
+    width: 100%;
+    border-radius: 1.1rem;
+    border: 1px solid rgba(79,70,229,.22);
+    background: linear-gradient(135deg, rgba(99,102,241,.12), rgba(14,165,233,.08));
+    padding: 1rem 1.15rem;
+    font-size: 1rem;
+    color: #1f2937;
+    resize: vertical;
+    min-height: 150px;
+    box-shadow: inset 0 1px 6px rgba(15,23,42,.08);
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+  .comment-form-card textarea:focus,
+  .popup-content textarea:focus {
+    outline: none;
+    border-color: rgba(79,70,229,.55);
+    box-shadow: 0 0 0 .22rem rgba(99,102,241,.18), inset 0 1px 4px rgba(15,23,42,.08);
+    background: rgba(255,255,255,.98);
+  }
+  .comment-form-card textarea::placeholder,
+  .popup-content textarea::placeholder {
+    color: rgba(15,23,42,.45);
+  }
+  .comment-form-card .form-error { color: #dc2626; margin-top: .5rem; font-size: .9rem; }
+  .comment-form-card .btn-gradient-primary,
+  .comment-form-card .btn.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    border-radius: 1rem;
+    padding: .8rem 1.9rem;
+    font-weight: 700;
+  }
+  .submit-comment-btn {
+    margin-top: 1.25rem;
+    box-shadow: 0 20px 44px rgba(79,70,229,.28);
+  }
+  .submit-comment-btn:hover {
+    box-shadow: 0 26px 56px rgba(79,70,229,.34);
+  }
+  .auth-callout {
+    margin-top: 1.2rem;
+    background: rgba(13,110,253,.08);
+    border: 1px solid rgba(13,110,253,.15);
+    border-radius: 1.1rem;
+    padding: 1rem 1.25rem;
+    font-size: .95rem;
+  }
+  .auth-callout a { color: #0d6efd; text-decoration: none; font-weight: 600; }
+  .auth-callout a:hover { text-decoration: underline; }
+
+  .comments-wrapper { display: grid; gap: 1.6rem; }
+
+  .modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(15,23,42,.65) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 999999 !important;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease, backdrop-filter .25s ease;
+    visibility: hidden;
+  }
+  .modal-overlay.show { 
+    opacity: 1 !important; 
+    pointer-events: auto !important; 
+    visibility: visible !important;
+  }
+
+  .popup {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000000 !important;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease;
+    padding: 1rem;
+    visibility: hidden;
+  }
+  .popup.is-active { 
+    opacity: 1 !important; 
+    pointer-events: auto !important; 
+    visibility: visible !important;
+  }
+  .popup-content {
+    position: relative;
+    width: min(calc(100vw - 2rem), 520px);
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    padding: 2.15rem 2.35rem;
+    border-radius: 1.35rem;
+    background: linear-gradient(145deg, rgba(255,255,255,.95), rgba(255,255,255,.88));
+    border: 1px solid rgba(255,255,255,.62);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    box-shadow: 0 35px 80px rgba(13,110,253,.32), 0 0 0 1px rgba(255,255,255,.18) inset;
+    text-align: center;
+    transform: translateY(28px) scale(.94);
+    transition: transform .35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow .35s ease, opacity .25s ease;
+  }
+  .popup.is-active .popup-content { 
+    transform: translateY(0) scale(1); 
+    box-shadow: 0 45px 100px rgba(13,110,253,.38), 0 0 0 1px rgba(255,255,255,.22) inset; 
+  }
+  .popup-content h4 { font-weight: 800; margin-bottom: 1rem; color: #1f2937; }
+  .popup-content p { color: rgba(31,41,55,.72); font-size: .95rem; margin-bottom: 1.2rem; }
+  .popup-close {
+    position: absolute;
+    inset-inline-end: 1rem;
+    inset-block-start: 1rem;
+    border: none;
+    background: rgba(255,255,255,.92);
+    border-radius: 999px;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #1f2937;
+    box-shadow: 0 8px 16px rgba(15,23,42,.15), 0 0 0 1px rgba(255,255,255,.5) inset;
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    z-index: 10;
+  }
+  .popup-close:hover {
+    transform: scale(1.05);
+    background: rgba(255,255,255,.98);
+    box-shadow: 0 12px 24px rgba(15,23,42,.2), 0 0 0 1px rgba(255,255,255,.6) inset;
+  }
+  .popup-actions { display: flex; flex-wrap: wrap; gap: .8rem; justify-content: center; }
+  .popup-actions .btn { border-radius: .85rem; font-weight: 600; padding: .65rem 1.5rem; }
+
+  @media (max-width: 767.98px) {
+    .detail-wrapper { padding: 2.5rem 1.25rem; }
+    .comment-card, .reply-card { padding: 1.35rem; }
+    .popup-content {
+      width: calc(100vw - 1rem);
+      padding: 1.75rem 1.5rem;
+      margin: 0.5rem;
+    }
+    .popup-close {
+      width: 34px;
+      height: 34px;
+      font-size: 1.1rem;
+      inset-inline-end: 0.75rem;
+      inset-block-start: 0.75rem;
+    }
+    .detail-title {
+      font-size: clamp(1.8rem, 5vw, 2.2rem);
+      line-height: 1.2;
+    }
+    .detail-intro {
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+    .detail-glass {
+      padding: clamp(1.5rem, 4vw, 2rem);
+    }
+  }
+
+  /* Custom Audio Player Styles */
+  .custom-audio-player {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 1.5rem;
+    padding: 1rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .player-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .control-button {
+    background: none;
+    border: none;
+    color: #1f2937;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    transition: background-color 0.2s ease;
+  }
+
+  .control-button:hover {
+      background-color: rgba(13, 110, 253, 0.1);
+  }
+
+  .progress-container {
+    flex-grow: 1;
+    background: rgba(0, 0, 0, 0.1);
+    height: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    min-width: 100px;
+  }
+
+  .progress-bar {
+    background-color: #0d6efd;
+    width: 0;
+    height: 100%;
+    border-radius: 4px;
+  }
+
+  .time-display {
+    font-size: 0.9rem;
+    color: #1f2937;
+    min-width: 80px;
+    text-align: center;
+  }
+
+  .volume-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 0;
+    height: 5px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 2.5px;
+    outline: none;
+    transition: width 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    margin-right: 0;
+  }
+
+  .volume-container:hover .volume-slider {
+      width: 80px;
+      opacity: 1;
+      margin-right: 0.5rem;
+  }
+
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    background: #0d6efd;
+    cursor: pointer;
+    border-radius: 50%;
+  }
+
+  .speed-container {
+    position: relative;
+  }
+
+  .speed-options {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 10;
+  }
+
+  .speed-options div {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .speed-options div:hover {
+    background: rgba(13, 110, 253, 0.1);
+  }
+
+  @media (max-width: 600px) {
+    .player-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    .progress-container {
+        order: -1; /* Move progress bar to the top */
+        width: 100%;
+    }
+    .time-display {
+        text-align: center;
+        width: 100%;
+        order: -1;
+    }
+    .volume-container:hover .volume-slider {
+        width: 60px;
+        margin-right: 0.25rem;
+    }
+    .main-controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        width: 100%;
+    }
+  }
+
+</style>
+{% endblock styles %}
+{% block content %}
+<div class="detail-bg"></div>
+<div class="detail-wrapper" dir="rtl">
+  <div class="detail-grid">
+    <aside class="cover-card">
+      {% if blog.cover %}
+        <img src="{{ blog.cover.url }}" alt="{{ blog.title }}">
+      {% endif %}
+      <div class="cover-overlay">
+        <span class="meta-chip"><i class="fa-regular fa-user"></i> {{ blog.author }}</span>
+        <div class="meta-list">
+          <span><i class="fa-regular fa-clock"></i> {{ blog.jalali_created }}</span>
+          <span><i class="fa-regular fa-eye"></i> {{ blog.views }} بازدید</span>
+          <span><i class="fa-regular fa-comment"></i> <span data-comment-count>{{ comment_count|default:0 }}</span> دیدگاه</span>
+        </div>
+      </div>
+    </aside>
+
+    <section class="detail-glass">
+      <span class="badge rounded-pill bg-primary bg-opacity-75 px-3 py-2">روایت ویژه امروز</span>
+      <h1 class="detail-title">{{ blog.title }}</h1>
+      <p class="detail-intro">{{ blog.description|striptags|truncatechars:220 }}</p>
+      {% if blog.audio %}
+      <div class="audio-player-container my-3">
+        <div class="custom-audio-player">
+          <audio class="audio-element" src="{{ blog.audio.url }}" preload="metadata"></audio>
+          <div class="player-controls">
+            <div class="time-display">
+              <span class="current-time">0:00</span> / <span class="duration">0:00</span>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar"></div>
+            </div>
+            <div class="main-controls">
+                <button class="control-button play-pause-btn"><i class="fa-solid fa-play"></i></button>
+                <div class="volume-container">
+                  <button class="control-button mute-btn"><i class="fa-solid fa-volume-high"></i></button>
+                  <input type="range" class="volume-slider" min="0" max="1" step="0.01" value="1">
+                </div>
+                <div class="speed-container">
+                    <button class="control-button speed-btn">1x</button>
+                    <div class="speed-options">
+                        <div data-speed="0.5">0.5x</div>
+                        <div data-speed="1">1x</div>
+                        <div data-speed="1.5">1.5x</div>
+                        <div data-speed="2">2x</div>
+                    </div>
+                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      <div class="detail-meta-inline">
+        <span><i class="fa-regular fa-clock"></i> آخرین بروزرسانی {{ blog.jalali_updated }}</span>
+        <span><i class="fa-solid fa-feather-pointed"></i> نویسنده {{ blog.author }}</span>
+      </div>
+      <div class="like-stack">
+        <button type="button" class="like-toggle blog-like{% if is_liked %} is-active{% endif %}" data-like-url="{% url 'like_blog' blog.id %}" data-target-type="blog" aria-pressed="{% if is_liked %}true{% else %}false{% endif %}" aria-label="پسندیدن نوشته">
+          <i class="fa-solid fa-heart"></i>
+          <span id="blog-like-count">{{ blog.total_likes }}</span>
+        </button>
+      </div>
+      {% if request.user == blog.author %}
+      <div class="detail-actions">
+        <a class="btn-gradient btn-gradient-primary" href="{% url 'blog_update' blog.pk %}"><i class="fa-solid fa-pen-to-square"></i> ویرایش نوشته</a>
+        <a class="btn-gradient btn-gradient-danger" href="{% url 'blog_delete' blog.pk %}"><i class="fa-solid fa-trash-can"></i> حذف نوشته</a>
+      </div>
+      {% endif %}
+
+      <div class="content-card">
+        <h2>چکیده و توضیحات</h2>
+        <div class="detail-body-text">{{ blog.description|linebreaksbr }}</div>
+      </div>
+    </section>
+  </div>
+
+  <section id="comments" class="comments-section">
+    <div class="comments-header">
+      <div class="comments-header-title">
+        <h3 class="h4 mb-0">دیدگاه‌های کاربران</h3>
+        <p class="comments-subtitle">نظرتان را با دیگران به اشتراک بگذارید و گفتگو را گرم‌تر کنید.</p>
+      </div>
+      <div class="comment-count-pill" aria-live="polite">
+        <i class="fa-regular fa-comment-dots"></i>
+        <span data-comment-count>{{ comment_count|default:0 }}</span>
+      </div>
+    </div>
+    <div id="commentsList">
+      {% include 'blog/partials/comment_thread.html' %}
+    </div>
+  </section>
+
+  <section class="comment-form-card">
+    <h3 class="h4 mb-3">نظر خود را ثبت کنید</h3>
+    {% if request.user.is_authenticated %}
+      <form id="commentForm" method="post" action="{% url 'blog_detail' blog.id %}">
+        {% csrf_token %}
+        <textarea name="{{ comment_form.text.name }}" id="id_comment_text" rows="5" required placeholder="نظر خود را بنویسید...">{{ comment_form.text.value|default_if_none:'' }}</textarea>
+        <div class="form-error" id="commentFormErrors">
+          {% if comment_form.text.errors %}{{ comment_form.text.errors|join:', ' }}{% endif %}
+        </div>
+        <button type="submit" class="btn-gradient btn-gradient-primary submit-comment-btn"><i class="fa-solid fa-paper-plane"></i> ارسال دیدگاه</button>
+      </form>
+    {% else %}
+      <div class="auth-callout">
+        برای ثبت دیدگاه ابتدا <a href="{% url 'login' %}">وارد شوید</a> یا <a href="{% url 'signup' %}">حساب جدید بسازید</a>.
+      </div>
+    {% endif %}
+  </section>
+</div>
+
+<!-- Modal Overlay - moved outside content wrapper for proper stacking -->
+<div id="modalOverlay" class="modal-overlay"></div>
+{% endblock content %}
+{% block scripts %}
+<script>
+(function () {
+  // Wait for DOM to be fully loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAll);
+  } else {
+    initializeAll();
+  }
+
+  function initializeAll() {
+    initializeModals();
+    initializeAudioPlayer();
+  }
+
+  function initializeAudioPlayer() {
+    const player = document.querySelector('.custom-audio-player');
+    if (!player) return;
+
+    const audio = player.querySelector('.audio-element');
+    const playPauseBtn = player.querySelector('.play-pause-btn');
+    const playIcon = '<i class="fa-solid fa-play"></i>';
+    const pauseIcon = '<i class="fa-solid fa-pause"></i>';
+    const progressContainer = player.querySelector('.progress-container');
+    const progressBar = player.querySelector('.progress-bar');
+    const currentTimeEl = player.querySelector('.current-time');
+    const durationEl = player.querySelector('.duration');
+    const volumeBtn = player.querySelector('.mute-btn');
+    const volumeSlider = player.querySelector('.volume-slider');
+    const volumeHighIcon = '<i class="fa-solid fa-volume-high"></i>';
+    const volumeLowIcon = '<i class="fa-solid fa-volume-low"></i>';
+    const volumeMuteIcon = '<i class="fa-solid fa-volume-xmark"></i>';
+    const speedBtn = player.querySelector('.speed-btn');
+    const speedOptions = player.querySelector('.speed-options');
+
+    function togglePlayPause() {
+        if (audio.paused) {
+            audio.play();
+        } else {
+            audio.pause();
+        }
+    }
+
+    function updatePlayPauseIcon() {
+        playPauseBtn.innerHTML = audio.paused ? playIcon : pauseIcon;
+    }
+
+    function formatTime(time) {
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60).toString().padStart(2, '0');
+        return isNaN(minutes) || isNaN(seconds) ? "0:00" : `${minutes}:${seconds}`;
+    }
+
+    function updateProgress() {
+        const percent = (audio.currentTime / audio.duration) * 100;
+        progressBar.style.width = `${percent}%`;
+        currentTimeEl.textContent = formatTime(audio.currentTime);
+    }
+
+    function setProgress(e) {
+        const isRTL = document.querySelector('.detail-wrapper')?.getAttribute('dir') === 'rtl';
+        const rect = this.getBoundingClientRect();
+        const clickX = isRTL ? rect.right - e.clientX : e.clientX - rect.left;
+        const width = this.clientWidth;
+        const duration = audio.duration;
+        if (duration) {
+            const newTime = (clickX / width) * duration;
+            audio.currentTime = Math.max(0, Math.min(newTime, duration));
+        }
+    }
+
+    function setDuration() {
+        if (audio.duration) {
+            durationEl.textContent = formatTime(audio.duration);
+        }
+    }
+
+    function toggleMute() {
+        audio.muted = !audio.muted;
+    }
+
+    function updateVolumeIcon() {
+        if (audio.muted || audio.volume === 0) {
+            volumeBtn.innerHTML = volumeMuteIcon;
+        } else if (audio.volume < 0.5) {
+            volumeBtn.innerHTML = volumeLowIcon;
+        } else {
+            volumeBtn.innerHTML = volumeHighIcon;
+        }
+    }
+
+    function setVolume() {
+        audio.volume = volumeSlider.value;
+        audio.muted = false;
+    }
+
+    function toggleSpeedOptions(e) {
+        e.stopPropagation();
+        speedOptions.style.display = speedOptions.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function setSpeed(e) {
+        if (e.target.dataset.speed) {
+            const speed = parseFloat(e.target.dataset.speed);
+            audio.playbackRate = speed;
+            speedBtn.textContent = `${speed}x`;
+            speedOptions.style.display = 'none';
+        }
+    }
+    
+    document.addEventListener('click', function(e) {
+        if (!speedBtn.contains(e.target)) {
+            speedOptions.style.display = 'none';
+        }
+    });
+
+    playPauseBtn.addEventListener('click', togglePlayPause);
+    audio.addEventListener('play', updatePlayPauseIcon);
+    audio.addEventListener('pause', updatePlayPauseIcon);
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('loadedmetadata', setDuration);
+    audio.addEventListener('durationchange', setDuration);
+    progressContainer.addEventListener('click', setProgress);
+
+    volumeBtn.addEventListener('click', toggleMute);
+    volumeSlider.addEventListener('input', setVolume);
+    audio.addEventListener('volumechange', updateVolumeIcon);
+
+    speedBtn.addEventListener('click', toggleSpeedOptions);
+    speedOptions.addEventListener('click', setSpeed);
+  }
+
+  function initializeModals() {
+    console.log('Initializing modals...');
+    
+  const commentContainer = document.getElementById('commentsList');
+  const commentForm = document.getElementById('commentForm');
+  const commentFormErrors = document.getElementById('commentFormErrors');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const blogLikeButton = document.querySelector('.blog-like');
+  const commentCountPill = document.querySelector('.comment-count-pill');
+  const focusableSelector = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+
+  console.log('Modal overlay found:', !!modalOverlay);
+  console.log('Comment container found:', !!commentContainer);
+
+  // Ensure modal overlay is in the body
+  if (modalOverlay && modalOverlay.parentElement !== document.body) {
+    document.body.appendChild(modalOverlay);
+  }
+
+  // Initialize all modals
+  document.querySelectorAll('.popup').forEach((modal) => {
+    if (!modal.hasAttribute('aria-hidden')) {
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    // Ensure modals are in the body for proper stacking
+    if (modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
+  });
+
+  // Global scroll position tracking
+  let isOperationInProgress = false;
+  let savedScrollPosition = { x: 0, y: 0 };
+
+  function lockScrollPosition() {
+    if (!isOperationInProgress) {
+      isOperationInProgress = true;
+      savedScrollPosition = { x: window.scrollX, y: window.scrollY };
+    }
+  }
+
+  function unlockScrollPosition() {
+    if (isOperationInProgress) {
+      isOperationInProgress = false;
+      // Restore to saved position if current position has changed unexpectedly
+      if (Math.abs(window.scrollY - savedScrollPosition.y) > 5) {
+        window.scrollTo({ top: savedScrollPosition.y, left: savedScrollPosition.x, behavior: 'instant' });
+      }
+    }
+  }
+
+  // Prevent unwanted scrolling during operations
+  window.addEventListener('scroll', (event) => {
+    if (isOperationInProgress || document.body.classList.contains('modal-open')) {
+      event.preventDefault();
+      window.scrollTo({ top: savedScrollPosition.y, left: savedScrollPosition.x, behavior: 'instant' });
+    }
+  }, { passive: false });
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+  let csrfToken = getCookie('csrftoken');
+
+  function ensureCsrfToken() {
+    csrfToken = getCookie('csrftoken');
+    if (!csrfToken) {
+      const input = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      if (input) csrfToken = input.value;
+    }
+    return csrfToken;
+  }
+
+  async function refreshComments() {
+    try {
+      const response = await fetch(window.location.href, {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      
+      if (response.ok) {
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newComments = doc.querySelector('#commentsList');
+        if (newComments && commentContainer) {
+          replaceComments(newComments.innerHTML);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh comments:', error);
+    }
+  }
+
+  function updateCommentCount(count) {
+    if (count === undefined || count === null) return;
+    const numeric = Number(count);
+    const displayValue = Number.isNaN(numeric) ? count : numeric;
+    document.querySelectorAll('[data-comment-count]').forEach((node) => {
+      node.textContent = displayValue;
+    });
+    if (commentCountPill) {
+      commentCountPill.classList.remove('is-updated');
+      void commentCountPill.offsetWidth;
+      commentCountPill.classList.add('is-updated');
+    }
+  }
+
+  function openModal(modal) {
+    if (!modal) {
+      console.error('Modal element not found');
+      return;
+    }
+    
+    console.log('Opening modal:', modal.id);
+    
+    // Lock scroll position immediately
+    lockScrollPosition();
+    
+    // Store current scroll position BEFORE any changes
+    const scrollY = window.scrollY;
+    const scrollX = window.scrollX;
+    document.documentElement.style.setProperty('--scroll-y', `-${scrollY}px`);
+    document.documentElement.style.setProperty('--scroll-x', `-${scrollX}px`);
+    
+    // Close any other open modals first
+    document.querySelectorAll('.popup.is-active').forEach((pop) => {
+      if (pop !== modal) {
+        pop.classList.remove('is-active');
+        pop.setAttribute('aria-hidden', 'true');
+      }
+    });
+    
+    // Lock scroll immediately to prevent any movement
+    document.body.classList.add('modal-open');
+    document.documentElement.classList.add('modal-open');
+    
+    modal.classList.add('is-active');
+    modal.setAttribute('aria-hidden', 'false');
+    if (modalOverlay) {
+      modalOverlay.classList.add('show');
+      console.log('Modal overlay shown');
+    }
+    
+    const focusTarget = modal.querySelector(focusableSelector);
+    if (focusTarget) {
+      focusTarget.focus({ preventScroll: true });
+    }
+  }
+
+  function closeModal(modal) {
+    if (!modal) return;
+    modal.classList.remove('is-active');
+    modal.setAttribute('aria-hidden', 'true');
+    
+    // Only remove overlay and restore scroll if no other modals are open
+    if (!document.querySelector('.popup.is-active')) {
+      restoreScrollPosition();
+    }
+  }
+
+  function closeAllModals() {
+    document.querySelectorAll('.popup.is-active').forEach((pop) => {
+      pop.classList.remove('is-active');
+      pop.setAttribute('aria-hidden', 'true');
+    });
+    restoreScrollPosition();
+  }
+
+  function restoreScrollPosition() {
+    if (modalOverlay) modalOverlay.classList.remove('show');
+    
+    // Get stored scroll position
+    const scrollY = document.documentElement.style.getPropertyValue('--scroll-y');
+    const scrollX = document.documentElement.style.getPropertyValue('--scroll-x') || '0px';
+    
+    // Remove scroll lock classes
+    document.body.classList.remove('modal-open');
+    document.documentElement.classList.remove('modal-open');
+    
+    // Clean up CSS properties
+    document.documentElement.style.removeProperty('--scroll-y');
+    document.documentElement.style.removeProperty('--scroll-x');
+    
+    // Restore scroll position smoothly
+    if (scrollY) {
+      const yValue = parseInt(scrollY || '0') * -1;
+      const xValue = parseInt(scrollX || '0') * -1;
+      window.scrollTo({ top: yValue, left: xValue, behavior: 'instant' });
+    }
+    
+    // Unlock scroll position tracking
+    unlockScrollPosition();
+  }
+
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', closeAllModals);
+  }
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeAllModals();
+  });
+
+  async function ajaxPost(url, data) {
+    console.log('Making AJAX request to:', url);
+    if (data && typeof data.has === 'function' && !data.has('csrfmiddlewaretoken')) {
+      const token = ensureCsrfToken();
+      if (token) data.append('csrfmiddlewaretoken', token);
+    }
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': ensureCsrfToken() || ''
+      },
+      body: data,
+      credentials: 'same-origin'
+    });
+  }
+
+  function replaceComments(html) {
+    if (!commentContainer || typeof html !== 'string') return;
+    commentContainer.innerHTML = html;
+    
+    // Re-initialize modals after content replacement
+    commentContainer.querySelectorAll('.popup').forEach((modal) => {
+      modal.setAttribute('aria-hidden', 'true');
+      // Ensure modals are moved to body for proper stacking
+      if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+      }
+    });
+    
+    ensureCsrfToken();
+    console.log('Comments replaced and modals re-initialized');
+  }
+
+  function displayErrors(target, errors) {
+    if (!errors) return;
+    const messages = [];
+    Object.keys(errors).forEach((key) => {
+      const value = Array.isArray(errors[key]) ? errors[key].join(', ') : errors[key];
+      messages.push(value);
+    });
+    const output = messages.join(', ');
+    if (target) {
+      target.textContent = output;
+    } else {
+      alert(output);
+    }
+  }
+
+  async function handleForm(form, { reset = false, close = false } = {}) {
+    const formErrorsTarget = form === commentForm ? commentFormErrors : null;
+    if (formErrorsTarget) formErrorsTarget.textContent = '';
+
+    // Lock scroll position during operation
+    lockScrollPosition();
+
+    const data = new FormData(form);
+    try {
+      const response = await ajaxPost(form.action || window.location.href, data);
+      
+      // Check if response is a redirect (status 302, 301, etc.)
+      if (response.redirected) {
+        // For authentication redirects, follow the redirect
+        if (response.url.includes('/login/') || response.url.includes('/signup/')) {
+          window.location.href = response.url;
+          return;
+        }
+      }
+      
+      const contentType = response.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      
+      let json = null;
+      try {
+        const responseText = await response.text();
+        if (isJson || responseText.trim().startsWith('{')) {
+          json = JSON.parse(responseText);
+        }
+      } catch (parseError) {
+        console.log('Response is not JSON, treating as success');
+      }
+
+      if (!response.ok) {
+        unlockScrollPosition();
+        if (json && json.redirect) {
+          window.location.href = json.redirect;
+          return;
+        }
+        if (json && json.errors) {
+          displayErrors(formErrorsTarget, json.errors);
+        } else if (json && json.error) {
+          displayErrors(formErrorsTarget, { error: [json.error] });
+        } else {
+          displayErrors(formErrorsTarget, { error: ['خطایی رخ داد. دوباره تلاش کنید.'] });
+        }
+        return;
+      }
+
+      // Handle successful response
+      if (json && json.html) {
+        replaceComments(json.html);
+      } else {
+        // If no JSON response, refresh the comments section
+        await refreshComments();
+      }
+      
+      if (json && typeof json.count === 'number') {
+        updateCommentCount(json.count);
+      }
+      
+      if (reset && form) form.reset();
+      if (close) closeAllModals();
+      
+      // Unlock scroll position after operation
+      if (!close) {
+        unlockScrollPosition();
+      }
+      
+    } catch (error) {
+      console.error('Form submission error:', error);
+      displayErrors(formErrorsTarget, { error: ['خطایی رخ داد. دوباره تلاش کنید.'] });
+      unlockScrollPosition();
+    }
+  }
+
+  async function handleLike(button) {
+    if (!button || !button.dataset.likeUrl) return;
+    try {
+      const likePayload = new FormData();
+      const token = ensureCsrfToken();
+      if (token) likePayload.append('csrfmiddlewaretoken', token);
+
+      const response = await fetch(button.dataset.likeUrl, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': token || ''
+        },
+        body: likePayload,
+        credentials: 'same-origin'
+      });
+      const contentType = response.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      const json = isJson ? await response.json() : null;
+
+      if (!response.ok) {
+        if (json && json.redirect) {
+          window.location.href = json.redirect;
+        } else if (response.redirected) {
+          window.location.href = response.url;
+        }
+        return;
+      }
+
+      const payload = json || await response.json().catch(() => ({ total_likes: NaN, liked: false }));
+      const countSpan = button.querySelector('span');
+      if (countSpan && payload.total_likes !== undefined) countSpan.textContent = payload.total_likes;
+      const isActive = Boolean(payload.liked);
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', String(isActive));
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  // Use document-level event delegation to handle dynamically added content
+  document.addEventListener('click', (event) => {
+    // Handle modal open triggers
+    const openTrigger = event.target.closest('[data-modal-open]');
+    if (openTrigger) {
+      event.preventDefault();
+      const modalSelector = openTrigger.dataset.modalOpen;
+      const modal = document.querySelector(modalSelector);
+      if (modal) {
+        console.log('Opening modal:', modalSelector);
+        openModal(modal);
+      } else {
+        console.error('Modal not found:', modalSelector);
+      }
+      return;
+    }
+
+    // Handle modal close triggers
+    const closeTrigger = event.target.closest('[data-modal-close]');
+    if (closeTrigger) {
+      event.preventDefault();
+      const modal = closeTrigger.closest('.popup');
+      closeModal(modal);
+      return;
+    }
+
+    // Handle like buttons (including blog like button)
+    const likeTrigger = event.target.closest('.like-toggle');
+    if (likeTrigger) {
+      event.preventDefault();
+      handleLike(likeTrigger);
+      return;
+    }
+  });
+
+  // Use document-level event delegation for form submissions
+  document.addEventListener('submit', (event) => {
+    const form = event.target;
+    console.log('Form submitted:', form.className, form.action);
+    
+    // Handle comment form submission
+    if (form.id === 'commentForm') {
+      event.preventDefault();
+      console.log('Handling comment form submission');
+      handleForm(form, { reset: true });
+      return;
+    }
+    
+    // Handle modal form submissions
+    if (
+      form.matches('.comment-edit-form') ||
+      form.matches('.comment-delete-form') ||
+      form.matches('.reply-create-form') ||
+      form.matches('.reply-edit-form') ||
+      form.matches('.reply-delete-form')
+    ) {
+      event.preventDefault();
+      console.log('Handling modal form submission:', form.className);
+      handleForm(form, { close: true });
+      return;
+    }
+  });
+  }
+})();
+</script>
+{% endblock scripts %}

@@ -1,0 +1,130 @@
+<div class="comments-wrapper">
+  {% if comments %}
+    {% for comment in comments %}
+      <div class="comment-card" id="comment-{{ comment.id }}">
+        <div class="comment-head">
+          <span class="comment-author">{{ comment.user }}</span>
+          <span class="comment-date"><i class="fa-regular fa-clock"></i> {{ comment.jalali_created }}</span>
+        </div>
+        <div class="comment-text">{{ comment.text|linebreaksbr }}</div>
+        <div class="comment-toolbar">
+          <button type="button" class="toolbar-pill pill-like like-toggle{% if request.user in comment.likes.all %} is-active{% endif %}" data-like-url="{% url 'like_comment' comment.id %}" data-target-type="comment" data-target-id="{{ comment.id }}" aria-pressed="{% if request.user in comment.likes.all %}true{% else %}false{% endif %}" aria-label="پسندیدن دیدگاه">
+            <i class="fa-solid fa-heart"></i>
+            <span id="comment-like-count-{{ comment.id }}">{{ comment.total_likes }}</span>
+          </button>
+          <button type="button" class="toolbar-pill pill-reply" data-modal-open="#reply-modal-{{ comment.id }}">پاسخ</button>
+          {% if comment.user == request.user %}
+            <button type="button" class="toolbar-pill pill-edit" data-modal-open="#edit-comment-modal-{{ comment.id }}">ویرایش</button>
+            <button type="button" class="toolbar-pill pill-delete" data-modal-open="#delete-comment-modal-{{ comment.id }}">حذف</button>
+          {% endif %}
+        </div>
+
+        {% if comment.reply_set.all %}
+          <div class="reply-thread">
+            {% for reply in comment.reply_set.all %}
+              <div class="reply-card" id="reply-{{ reply.id }}">
+                <div class="reply-head">
+                  <span class="comment-author">{{ reply.user }}</span>
+                  <span class="comment-date"><i class="fa-regular fa-clock"></i> {{ reply.jalali_created }}</span>
+                </div>
+                <div class="reply-body">{{ reply.text|linebreaksbr }}</div>
+                <div class="reply-actions">
+                  <button type="button" class="toolbar-pill pill-like like-toggle{% if request.user in reply.likes.all %} is-active{% endif %}" data-like-url="{% url 'reply_like' reply.id %}" data-target-type="reply" data-target-id="{{ reply.id }}" aria-pressed="{% if request.user in reply.likes.all %}true{% else %}false{% endif %}" aria-label="پسندیدن پاسخ">
+                    <i class="fa-solid fa-heart"></i>
+                    <span id="reply-like-count-{{ reply.id }}">{{ reply.total_likes }}</span>
+                  </button>
+                  {% if reply.user == request.user %}
+                    <button type="button" class="toolbar-pill pill-edit" data-modal-open="#edit-reply-modal-{{ reply.id }}">ویرایش</button>
+                    <button type="button" class="toolbar-pill pill-delete" data-modal-open="#delete-reply-modal-{{ reply.id }}">حذف</button>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="popup" role="dialog" aria-hidden="true" aria-modal="true" id="edit-reply-modal-{{ reply.id }}">
+                <div class="popup-content">
+                  <button type="button" class="popup-close" data-modal-close>&times;</button>
+                  <h4>ویرایش پاسخ</h4>
+                  <p>متن پاسخ خود را ویرایش کنید و سپس ذخیره را بزنید.</p>
+                  <form method="post" action="{% url 'reply_edit' reply.id %}" class="reply-edit-form">
+                    {% csrf_token %}
+                    <textarea name="text" rows="4" required>{{ reply.text }}</textarea>
+                    <div class="popup-actions">
+                      <button type="submit" class="btn btn-success">ذخیره پاسخ</button>
+                      <button type="button" class="btn btn-outline-secondary" data-modal-close>انصراف</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div class="popup" role="dialog" aria-hidden="true" aria-modal="true" id="delete-reply-modal-{{ reply.id }}">
+                <div class="popup-content">
+                  <button type="button" class="popup-close" data-modal-close>&times;</button>
+                  <h4>حذف پاسخ</h4>
+                  <p>با حذف این پاسخ امکان بازگردانی آن وجود ندارد. ادامه می‌دهید؟</p>
+                  <form method="post" action="{% url 'reply_delete' reply.id %}" class="reply-delete-form">
+                    {% csrf_token %}
+                    <div class="popup-actions">
+                      <button type="submit" class="btn btn-danger">حذف پاسخ</button>
+                      <button type="button" class="btn btn-outline-secondary" data-modal-close>انصراف</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="popup" role="dialog" aria-hidden="true" aria-modal="true" id="reply-modal-{{ comment.id }}">
+          <div class="popup-content">
+            <button type="button" class="popup-close" data-modal-close>&times;</button>
+            <h4>ارسال پاسخ جدید</h4>
+            <p>پاسخ خود را بنویسید تا گفتگو ادامه پیدا کند.</p>
+            <form method="post" action="{% url 'reply_create' comment.id %}" class="reply-create-form">
+              {% csrf_token %}
+              <textarea name="text" rows="4" required placeholder="پاسخ خود را بنویسید..."></textarea>
+              <div class="popup-actions">
+                <button type="submit" class="btn btn-primary">ارسال پاسخ</button>
+                <button type="button" class="btn btn-outline-secondary" data-modal-close>انصراف</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {% if comment.user == request.user %}
+          <div class="popup" role="dialog" aria-hidden="true" aria-modal="true" id="edit-comment-modal-{{ comment.id }}">
+            <div class="popup-content">
+              <button type="button" class="popup-close" data-modal-close>&times;</button>
+              <h4>ویرایش دیدگاه</h4>
+              <p>تصحیح یا تکمیل دیدگاه به بهتر شدن گفتگو کمک می‌کند.</p>
+              <form method="post" action="{% url 'comment_edit' comment.id %}" class="comment-edit-form">
+                {% csrf_token %}
+                <textarea name="text" rows="4" required>{{ comment.text }}</textarea>
+                <div class="popup-actions">
+                  <button type="submit" class="btn btn-success">ذخیره دیدگاه</button>
+                  <button type="button" class="btn btn-outline-secondary" data-modal-close>انصراف</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="popup" role="dialog" aria-hidden="true" aria-modal="true" id="delete-comment-modal-{{ comment.id }}">
+            <div class="popup-content">
+              <button type="button" class="popup-close" data-modal-close>&times;</button>
+              <h4>حذف دیدگاه</h4>
+              <p>آیا مطمئن هستید که می‌خواهید این دیدگاه را برای همیشه حذف کنید؟</p>
+              <form method="post" action="{% url 'comment_delete' comment.id %}" class="comment-delete-form">
+                {% csrf_token %}
+                <div class="popup-actions">
+                  <button type="submit" class="btn btn-danger">حذف دیدگاه</button>
+                  <button type="button" class="btn btn-outline-secondary" data-modal-close>انصراف</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-muted mb-0">هنوز دیدگاهی ثبت نشده است. اولین نفر باشید!</p>
+  {% endif %}
+</div>
